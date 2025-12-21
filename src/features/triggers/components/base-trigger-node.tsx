@@ -29,7 +29,7 @@ export const BaseTriggerNode = memo(
     name,
     description,
     children,
-    status = "initial",
+    status = "success",
     onSettings,
     onDoubleClick,
   }: BaseTriggerNodeProps) => {
@@ -56,7 +56,11 @@ export const BaseTriggerNode = memo(
         onDelete={handleDelete}
         onSettings={onSettings}
       >
-        <NodeStatusIndicator status={status} variant="border">
+        <NodeStatusIndicator
+          status={status}
+          variant="border"
+          className="rounded-l-2xl"
+        >
           <BaseNode
             status={status}
             onDoubleClick={onDoubleClick}
@@ -69,7 +73,7 @@ export const BaseTriggerNode = memo(
                 <Icon className="size-4 text-muted-foreground" />
               )}
               {children}
-              <BaseHandle 
+              <BaseHandle
                 id="source-1"
                 type="source"
                 position={Position.Right}
