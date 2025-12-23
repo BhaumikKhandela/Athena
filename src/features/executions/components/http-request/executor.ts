@@ -1,7 +1,8 @@
 import type { NodeExecutor } from "@/features/executions/types";
 import { NonRetriableError } from "inngest";
-import ky, { type Options as KyOptions } from "ky";
+import ky, { HTTPError, type Options as KyOptions } from "ky";
 import Handlebars from "handlebars";
+import { httpRequestChannel } from "@/inngest/channels/http-request";
 
 Handlebars.registerHelper("json", (context) => {
   try {
@@ -29,23 +30,47 @@ export const httpRequestExecutor: NodeExecutor<HttpRequestData> = async ({
   nodeId,
   context,
   step,
+  publish,
+  attempt,
 }) => {
-  // TODO: Publish "loading" state for http request
+  await publish(
+    httpRequestChannel().status({
+      nodeId,
+      status: "loading",
+    })
+  );
 
   if (!data.endpoint) {
-    // TODO: Publish "error" state for http request
+    await publish(
+      httpRequestChannel().status({
+        nodeId,
+        status: "error",
+      })
+    );
     throw new NonRetriableError("HTTP Request node: No endpoint configured");
   }
 
   if (!data.variableName) {
-    // TODO: Publish "error" state for http request
+    await publish(
+      httpRequestChannel().status({
+        nodeId,
+        status: "error",
+      })
+    );
+
     throw new NonRetriableError(
       "HTTP Request node: Variable name not configured"
     );
   }
 
   if (!data.method) {
-    // TODO: Publish "error" state for http request
+    await publish(
+      httpRequestChannel().status({
+        nodeId,
+        status: "error",
+      })
+    );
+
     throw new NonRetriableError("HTTP Request node: Method not configured");
   }
 
@@ -59,6 +84,12 @@ export const httpRequestExecutor: NodeExecutor<HttpRequestData> = async ({
         );
       }
     } catch (error) {
+      await publish(
+        httpRequestChannel().status({
+          nodeId,
+          status: "error",
+        })
+      );
       throw new NonRetriableError(
         `HTTP Request node: Failed to resolve endpoint template: ${
           error instanceof Error ? error.message : String(error)
@@ -79,27 +110,61 @@ export const httpRequestExecutor: NodeExecutor<HttpRequestData> = async ({
       };
     }
 
-    const response = await ky(endpoint, options);
-    const contentType = response.headers.get("content-type");
-    const responseData = contentType?.includes("application/json")
-      ? await response.json()
-      : await response.text();
+    try {
+      const response = await ky(endpoint, options);
+      const contentType = response.headers.get("content-type");
+      const responseData = contentType?.includes("application/json")
+        ? await response.json()
+        : await response.text();
 
-    const responsePayload = {
-      httpResponse: {
-        status: response.status,
-        statusText: response.statusText,
-        data: responseData,
-      },
-    };
+      const responsePayload = {
+        httpResponse: {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData,
+        },
+      };
 
-    return {
-      ...context,
-      [data.variableName]: responsePayload,
-    };
+      return {
+        ...context,
+        [data.variableName]: responsePayload,
+      };
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        const status = error.response.status;
+
+        if (attempt === 4) {
+          await publish(
+            httpRequestChannel().status({
+              nodeId,
+              status: "error",
+            })
+          );
+        }
+        if (status === 408 || status === 429 || status >= 500) {
+          throw error;
+        }
+
+        await publish(
+          httpRequestChannel().status({
+            nodeId,
+            status: "error",
+          })
+        );
+        throw new NonRetriableError(
+          `[NodeId: ${nodeId}] Client error ${status}: ${error.response.statusText}`
+        );
+      }
+      throw error;
+    }
   });
 
-  // TODO: Publish "success" state for http request.
+  await publish(
+    httpRequestChannel().status({
+      nodeId,
+      status: "success",
+    })
+  );
 
   return result;
 };
