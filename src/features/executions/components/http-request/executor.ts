@@ -73,44 +73,28 @@ export const httpRequestExecutor: NodeExecutor<HttpRequestData> = async ({
 
     throw new NonRetriableError("HTTP Request node: Method not configured");
   }
-
-  const result = await step.run("http-request", async () => {
-    let endpoint: string;
-    try {
-      endpoint = Handlebars.compile(data.endpoint)(context);
+  try {
+    const result = await step.run("http-request", async () => {
+      const endpoint = Handlebars.compile(data.endpoint)(context);
       if (!endpoint || typeof endpoint !== "string") {
         throw new Error(
           "Endpoint template must be resolved a non-empty string"
         );
       }
-    } catch (error) {
-      await publish(
-        httpRequestChannel().status({
-          nodeId,
-          status: "error",
-        })
-      );
-      throw new NonRetriableError(
-        `HTTP Request node: Failed to resolve endpoint template: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-    }
 
-    const method = data.method;
+      const method = data.method;
 
-    const options: KyOptions = { method };
+      const options: KyOptions = { method };
 
-    if (["POST", "PUT", "PATCH"].includes(method)) {
-      const resolved = Handlebars.compile(data.body || "{}")(context);
-      JSON.parse(resolved);
-      options.body = resolved;
-      options.headers = {
-        "Content-Type": "application/json",
-      };
-    }
+      if (["POST", "PUT", "PATCH"].includes(method)) {
+        const resolved = Handlebars.compile(data.body || "{}")(context);
+        JSON.parse(resolved);
+        options.body = resolved;
+        options.headers = {
+          "Content-Type": "application/json",
+        };
+      }
 
-    try {
       const response = await ky(endpoint, options);
       const contentType = response.headers.get("content-type");
       const responseData = contentType?.includes("application/json")
@@ -129,42 +113,17 @@ export const httpRequestExecutor: NodeExecutor<HttpRequestData> = async ({
         ...context,
         [data.variableName]: responsePayload,
       };
-    } catch (error) {
-      if (error instanceof HTTPError) {
-        const status = error.response.status;
+    });
 
-        if (attempt === 4) {
-          await publish(
-            httpRequestChannel().status({
-              nodeId,
-              status: "error",
-            })
-          );
-        }
-        if (status === 408 || status === 429 || status >= 500) {
-          throw error;
-        }
+    await publish(
+      httpRequestChannel().status({
+        nodeId,
+        status: "success",
+      })
+    );
 
-        await publish(
-          httpRequestChannel().status({
-            nodeId,
-            status: "error",
-          })
-        );
-        throw new NonRetriableError(
-          `[NodeId: ${nodeId}] Client error ${status}: ${error.response.statusText}`
-        );
-      }
-      throw error;
-    }
-  });
-
-  await publish(
-    httpRequestChannel().status({
-      nodeId,
-      status: "success",
-    })
-  );
-
-  return result;
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
