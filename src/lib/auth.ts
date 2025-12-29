@@ -38,4 +38,5 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true,
   },
+  trustedOrigins: [`https://${process.env.NGROK_URL}`],
 });

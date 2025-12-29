@@ -3,6 +3,7 @@ import { NodeExecutor } from "../types";
 import { manualTriggerExecutor } from "@/features/triggers/components/manual-trigger/executor";
 import { httpRequestExecutor } from "../components/http-request/executor";
 import { googleFormTriggerExecutor } from "@/features/triggers/components/google-form-trigger/executor";
+import { stripeTriggerExecutor } from "@/features/triggers/components/stripe-trigger/executor";
 
 export type HttpRequestData = {
   variableName: string;
@@ -16,6 +17,7 @@ interface NodeDataMap {
   [NodeType.MANUAL_TRIGGER]: Record<string, unknown>;
   [NodeType.INITIAL]: Record<string, unknown>;
   [NodeType.GOOGLE_FORM_TRIGGER]: Record<string, unknown>;
+  [NodeType.STRIPE_TRIGGER]: Record<string, any>;
 }
 
 export const executorRegistry: {
@@ -24,7 +26,8 @@ export const executorRegistry: {
   [NodeType.MANUAL_TRIGGER]: manualTriggerExecutor,
   [NodeType.INITIAL]: manualTriggerExecutor,
   [NodeType.HTTP_REQUEST]: httpRequestExecutor,
-  [NodeType.GOOGLE_FORM_TRIGGER]: googleFormTriggerExecutor
+  [NodeType.GOOGLE_FORM_TRIGGER]: googleFormTriggerExecutor,
+  [NodeType.STRIPE_TRIGGER]: stripeTriggerExecutor,
 };
 
 export const getExecutor = <T extends NodeType>(
