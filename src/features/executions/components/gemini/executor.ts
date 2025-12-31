@@ -88,9 +88,14 @@ export const geminiExecutor: NodeExecutor<GeminiData> = async ({
   });
 
   if (!credential) {
+    await publish(
+      geminiChannel().status({
+        nodeId,
+        status: "error",
+      })
+    );
     throw new NonRetriableError("Gemini node: Credential not found");
   }
-
 
   const google = createGoogleGenerativeAI({
     apiKey: credential.value,

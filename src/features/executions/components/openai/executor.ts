@@ -64,13 +64,13 @@ export const openAiExecutor: NodeExecutor<OpenAiData> = async ({
     throw new NonRetriableError("OpenAi node: User prompt is missing");
   }
 
- if (!data.credentialId) {
-     await publish(
-       openAiChannel().status({
-         nodeId,
-         status: "error",
-       })
-     );
+  if (!data.credentialId) {
+    await publish(
+      openAiChannel().status({
+        nodeId,
+        status: "error",
+      })
+    );
 
     throw new NonRetriableError("OpenAi node: Credential is required");
   }
@@ -81,17 +81,21 @@ export const openAiExecutor: NodeExecutor<OpenAiData> = async ({
 
   const userPrompt = Handlebars.compile(data.userPrompt)(context);
 
- const credential = await step.run("get-credential", () => {
+  const credential = await step.run("get-credential", () => {
     return prisma.credential.findUnique({
       where: { id: data.credentialId },
     });
   });
 
   if (!credential) {
+    await publish(
+      openAiChannel().status({
+        nodeId,
+        status: "error",
+      })
+    );
     throw new NonRetriableError("OpenAi node: Credential not found");
   }
-
-
 
   const credentialValue = process.env.OPENAI_API_KEY;
 
