@@ -169,7 +169,7 @@ export const WorkflowItem = ({ data }: { data: Workflow }) => {
         </div>
       }
       onRemove={handleRemove}
-      isRemoving={false}
+      isRemoving={removeWorkflow.isPending}
     />
   );
 };
