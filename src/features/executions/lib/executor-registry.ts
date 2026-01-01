@@ -7,6 +7,8 @@ import { stripeTriggerExecutor } from "@/features/triggers/components/stripe-tri
 import { geminiExecutor } from "../components/gemini/executor";
 import { openAiExecutor } from "../components/openai/executor";
 import { anthropicExecutor } from "../components/anthropic/executor";
+import { discordExecutor } from "../components/discord/executor";
+import { slackExecutor } from "../components/slack/executor";
 
 export type HttpRequestData = {
   variableName: string;
@@ -24,6 +26,8 @@ interface NodeDataMap {
   [NodeType.GEMINI]: Record<string, any>;
   [NodeType.OPENAI]: Record<string, any>;
   [NodeType.ANTHROPIC]: Record<string, any>;
+  [NodeType.DISCORD]: Record<string, any>;
+  [NodeType.SLACK]: Record<string, any>;
 }
 
 export const executorRegistry: {
@@ -37,6 +41,8 @@ export const executorRegistry: {
   [NodeType.GEMINI]: geminiExecutor,
   [NodeType.OPENAI]: openAiExecutor,
   [NodeType.ANTHROPIC]: anthropicExecutor,
+  [NodeType.DISCORD]: discordExecutor,
+  [NodeType.SLACK]: slackExecutor,
 };
 
 export const getExecutor = <T extends NodeType>(
