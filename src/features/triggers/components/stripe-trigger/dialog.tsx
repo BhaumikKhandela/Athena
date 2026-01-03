@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -35,14 +36,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useWebhookSecretByProvider } from "../../hooks/use-signing-secret";
 import { WebhookProvider } from "@/generated/prisma/enums";
 import Image from "next/image";
+import { useEffect } from "react";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubmit: (values: z.infer<typeof formSchema>) => void;
   defaultValues?: Partial<StripeFormValues>;
 }
 const formSchema = z.object({
-  credentialId: z.string().min(1, "Credential is required"),
+  secretId: z.string().min(1, "Credential is required"),
 });
 
 export type StripeFormValues = z.infer<typeof formSchema>;
@@ -50,6 +53,7 @@ export const StripeTriggerDialog = ({
   open,
   onOpenChange,
   defaultValues = {},
+  onSubmit,
 }: Props) => {
   const params = useParams();
   const workflowId = params.workflowId as string;
@@ -66,9 +70,22 @@ export const StripeTriggerDialog = ({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      credentialId: defaultValues.credentialId || "",
+      secretId: defaultValues.secretId || "",
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        secretId: defaultValues.secretId || "",
+      });
+    }
+  }, [open, defaultValues, form]);
+
+  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    onSubmit(values);
+    onOpenChange(false);
+  };
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(webhookUrl);
@@ -108,16 +125,20 @@ export const StripeTriggerDialog = ({
             </div>
           </div>
           <Form {...form}>
-            <form className="space-y-8 mt-4">
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-8 mt-4"
+            >
               <FormField
                 control={form.control}
-                name="credentialId"
+                name="secretId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Stripe Credential</FormLabel>
+                    <FormLabel>Stripe Signing Secret</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={isLoading || !signingSecrets?.length}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -144,62 +165,66 @@ export const StripeTriggerDialog = ({
                   </FormItem>
                 )}
               />
+
+              <div className="rounded-lg bg-muted p-4 space-y-2">
+                <h4 className="font-medium text-sm">Setup instructions:</h4>
+                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Open your Stripe Dashboard</li>
+                  <li>Go to Developer → Webhooks</li>
+                  <li>Click "Add endpoint"</li>
+                  <li>Paste the above webhook URL</li>
+                  <li>
+                    Select events to listen for (e.g., payment_intent_succeeded)
+                  </li>
+                  <li>Save and Copy the signing secret</li>
+                  <li>
+                    If this is a new webhook, create a new Stripe Secret
+                    credential by pasting the signing secret in Webhooks tab.
+                    Otherwise, select an existing one.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="rounded-lg bg-muted p-4 space-y-2">
+                <h4 className="font-medium text-sm">Available Variables</h4>
+                <ul className="text-sm text-muted-foreground space-y-1 ">
+                  <li>
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      {"{{stripe.amount}}"}
+                    </code>
+                    Payment Amount
+                  </li>
+                  <li>
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      {"{{stripe.currency}}"}
+                    </code>
+                    Currency code
+                  </li>
+                  <li>
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      {"{{stripe.customerId}}"}
+                    </code>
+                    Customer ID
+                  </li>
+                  <li>
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      {"{{json stripe}}"}
+                    </code>
+                    Full Event Data as JSON
+                  </li>
+                  <li>
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      {"{{stripe.eventType}}"}
+                    </code>
+                    Event Type (e.g., payment_intent_succeeded)
+                  </li>
+                </ul>
+              </div>
+              <DialogFooter className="mt-4">
+                <Button type="submit">Save</Button>
+              </DialogFooter>
             </form>
           </Form>
-          <div className="rounded-lg bg-muted p-4 space-y-2">
-            <h4 className="font-medium text-sm">Setup instructions:</h4>
-            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Open your Stripe Dashboard</li>
-              <li>Go to Developer → Webhooks</li>
-              <li>Click "Add endpoint"</li>
-              <li>Paste the above webhook URL</li>
-              <li>
-                Select events to listen for (e.g., payment_intent_succeeded)
-              </li>
-              <li>Save and Copy the signing secret</li>
-              <li>
-                If this is a new webhook, create a new Stripe Secret credential
-                by pasting the signing secret. Otherwise, select an existing
-                one.
-              </li>
-            </ol>
-          </div>
-
-          <div className="rounded-lg bg-muted p-4 space-y-2">
-            <h4 className="font-medium text-sm">Available Variables</h4>
-            <ul className="text-sm text-muted-foreground space-y-1 ">
-              <li>
-                <code className="bg-background px-1 py-0.5 rounded">
-                  {"{{stripe.amount}}"}
-                </code>
-                Payment Amount
-              </li>
-              <li>
-                <code className="bg-background px-1 py-0.5 rounded">
-                  {"{{stripe.currency}}"}
-                </code>
-                Currency code
-              </li>
-              <li>
-                <code className="bg-background px-1 py-0.5 rounded">
-                  {"{{stripe.customerId}}"}
-                </code>
-                Customer ID
-              </li>
-              <li>
-                <code className="bg-background px-1 py-0.5 rounded">
-                  {"{{json stripe}}"}
-                </code>
-                Full Event Data as JSON
-              </li>
-              <li>
-                <code className="bg-background px-1 py-0.5 rounded">
-                  {"{{stripe.eventType}}"}
-                </code>
-                Event Type (e.g., payment_intent_succeeded)
-              </li>
-            </ul>
-          </div>
         </div>
       </DialogContent>
     </Dialog>
