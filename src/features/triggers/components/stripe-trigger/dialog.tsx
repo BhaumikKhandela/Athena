@@ -13,20 +13,62 @@ import { Label } from "@/components/ui/label";
 import { CopyIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useWebhookSecretByProvider } from "../../hooks/use-signing-secret";
+import { WebhookProvider } from "@/generated/prisma/enums";
+import Image from "next/image";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultValues?: Partial<StripeFormValues>;
 }
+const formSchema = z.object({
+  credentialId: z.string().min(1, "Credential is required"),
+});
 
-export const StripeTriggerDialog = ({ open, onOpenChange }: Props) => {
+export type StripeFormValues = z.infer<typeof formSchema>;
+export const StripeTriggerDialog = ({
+  open,
+  onOpenChange,
+  defaultValues = {},
+}: Props) => {
   const params = useParams();
   const workflowId = params.workflowId as string;
+
+  const { data: signingSecrets, isLoading } = useWebhookSecretByProvider(
+    WebhookProvider.STRIPE,
+    workflowId
+  );
 
   // Construct the webhook URL
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const webhookUrl = `${baseUrl}/api/webhooks/stripe?workflowId=${workflowId}`;
 
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      credentialId: defaultValues.credentialId || "",
+    },
+  });
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(webhookUrl);
@@ -65,17 +107,61 @@ export const StripeTriggerDialog = ({ open, onOpenChange }: Props) => {
               </Button>
             </div>
           </div>
+          <Form {...form}>
+            <form className="space-y-8 mt-4">
+              <FormField
+                control={form.control}
+                name="credentialId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stripe Credential</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a secret" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {signingSecrets?.map((secret) => (
+                          <SelectItem key={secret.id} value={secret.id}>
+                            <div className="flex items-center gap-2">
+                              <Image
+                                src="/logos/stripe.svg"
+                                alt="Stripe"
+                                width={16}
+                                height={16}
+                              />
+                              {secret.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
           <div className="rounded-lg bg-muted p-4 space-y-2">
             <h4 className="font-medium text-sm">Setup instructions:</h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
               <li>Open your Stripe Dashboard</li>
               <li>Go to Developer → Webhooks</li>
               <li>Click "Add endpoint"</li>
-              <li>Paste the webhook URL above</li>
+              <li>Paste the above webhook URL</li>
               <li>
                 Select events to listen for (e.g., payment_intent_succeeded)
               </li>
               <li>Save and Copy the signing secret</li>
+              <li>
+                If this is a new webhook, create a new Stripe Secret credential
+                by pasting the signing secret. Otherwise, select an existing
+                one.
+              </li>
             </ol>
           </div>
 
@@ -106,7 +192,7 @@ export const StripeTriggerDialog = ({ open, onOpenChange }: Props) => {
                 </code>
                 Full Event Data as JSON
               </li>
-               <li>
+              <li>
                 <code className="bg-background px-1 py-0.5 rounded">
                   {"{{stripe.eventType}}"}
                 </code>

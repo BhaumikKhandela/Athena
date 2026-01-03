@@ -25,6 +25,7 @@ model User {
   accounts      Account[]
   workflows     Workflow[]
   credentials  Credential[]
+  webhookVerification WebhookVerification[]
   @@unique([email])
   @@map("user")
 }
@@ -107,6 +108,8 @@ model Workflow {
   connections Connection[]
   executions Execution[]
 
+  webhookVerification WebhookVerification[]
+
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -188,3 +191,26 @@ model Execution {
 
   output Json?
 }
+
+enum WebhookProvider {
+  STRIPE
+  GOOGLE_FORM
+}
+
+model WebhookVerification {
+  id String @id @default(cuid())
+
+  provider WebhookProvider
+
+  name String
+  signingSecret String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workflowId String
+  workflow Workflow @relation(fields: [workflowId], references: [id])
+
+  userId String
+  user User @relation(fields: [userId], references: [id])
+} 
