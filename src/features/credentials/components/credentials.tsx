@@ -13,7 +13,6 @@ import {
   LoadingView,
 } from "@/components/entity-components";
 import {
-  useCreateCredential,
   useRemoveCredential,
   useSuspenseCredentials,
 } from "../hooks/use-credentials";
@@ -21,9 +20,10 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useCredentialsParams } from "../hooks/use-credentials-params";
 import { useEntitySearch } from "@/hooks/use-entity-search";
-import type { Credential } from "@/generated/prisma/client";
-import { CredentialType } from "@/generated/prisma/client";
+
 import Image from "next/image";
+import { CredentialType } from "@/generated/prisma/enums";
+import type { Credential } from "@/generated/prisma/browser";
 
 export const CredentialsSearch = () => {
   const [params, setParams] = useCredentialsParams();

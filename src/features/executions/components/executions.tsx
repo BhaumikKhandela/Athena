@@ -15,14 +15,15 @@ import { useSuspenseExecutions } from "../hooks/use-executions";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useExecutionsParams } from "../hooks/use-executions-params";
-import type { Execution } from "@/generated/prisma/client";
-import { ExecutionStatus } from "@/generated/prisma/client";
+
 import {
   CheckCircle2Icon,
   ClockIcon,
   Loader2Icon,
   XCircleIcon,
 } from "lucide-react";
+import { ExecutionStatus } from "@/generated/prisma/enums";
+import type { Execution } from "@/generated/prisma/browser";
 
 export const ExecutionsList = () => {
   const executions = useSuspenseExecutions();

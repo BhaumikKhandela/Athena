@@ -7,7 +7,6 @@ import {
   XCircleIcon,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
