@@ -9,7 +9,7 @@ import {
 } from "@/trpc/init";
 import z from "zod";
 
-export const triggersRouter = createTRPCRouter({
+export const webhooksRouter = createTRPCRouter({
   getByProvider: protectedProcedure
     .input(
       z.object({

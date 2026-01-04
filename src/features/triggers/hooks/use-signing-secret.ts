@@ -10,5 +10,5 @@ import { useQuery } from "@tanstack/react-query";
 export const useWebhookSecretByProvider = (provider: WebhookProvider, workflowId: string) => {
   const trpc = useTRPC();
 
-  return useQuery(trpc.triggers.getByProvider.queryOptions({ provider, workflowId }));
+  return useQuery(trpc.webhooks.getByProvider.queryOptions({ provider, workflowId }));
 };
