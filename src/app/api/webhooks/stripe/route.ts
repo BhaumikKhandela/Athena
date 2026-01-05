@@ -1,5 +1,12 @@
+import Stripe from "stripe";
 import { sendWorkflowExecution } from "@/inngest/utils";
 import { type NextRequest, NextResponse } from "next/server";
+import { WebhookProvider } from "@/generated/prisma/enums";
+import prisma from "@/lib/db";
+
+const stripe = new Stripe("dummy_secret_key", {
+  typescript: true,
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,15 +23,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const stripeSecret = await prisma.webhookVerification.findUnique({
+      where: {
+        workflowId_provider: {
+          workflowId,
+          provider: WebhookProvider.STRIPE,
+        },
+      },
+    });
+
+    if (!stripeSecret || !stripeSecret.signingSecret) {
+      return NextResponse.json(
+        { error: "No signing secret found for this workflow" },
+        { status: 404 }
+      );
+    }
+
+    const sig = request.headers.get("stripe-signature");
+
+    if (!sig) {
+      return NextResponse.json(
+        { error: "Missing stripe-signature header" },
+        { status: 400 }
+      );
+    }
+
+    const rawBody = await request.text();
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        rawBody,
+        sig,
+        stripeSecret.signingSecret
+      );
+    } catch (error: any) {
+      console.error(`Webhook signature verification failed: ${error?.message}`);
+      return NextResponse.json(
+        { error: `Webhook signature verification failed: ${error?.message}` },
+        { status: 400 }
+      );
+    }
+  
 
     const stripeData = {
       // Event Metadata
-      eventId: body.id,
-      eventType: body.type,
-      timestamp: body.created,
-      livemode: body.livemode,
-      raw: body.data?.object,
+      eventId: event.id,
+      eventType: event.type,
+      timestamp: event.created,
+      livemode: event.livemode,
+      raw: event.data?.object,
     };
 
     await sendWorkflowExecution({

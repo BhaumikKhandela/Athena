@@ -213,4 +213,6 @@ model WebhookVerification {
 
   userId String
   user User @relation(fields: [userId], references: [id])
+
+  @@unique([workflowId,provider])
 } 

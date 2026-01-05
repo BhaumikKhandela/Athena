@@ -3,6 +3,7 @@ import { WebhookProvider } from "@/generated/prisma/enums";
 import prisma from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
 import {
+  baseProcedure,
   createTRPCRouter,
   premiumProcedure,
   protectedProcedure,
@@ -14,7 +15,7 @@ export const webhooksRouter = createTRPCRouter({
     .input(
       z.object({
         provider: z.enum(WebhookProvider),
-        workflowId: z.string().min(1, "Workflow ID is required")
+        workflowId: z.string().min(1, "Workflow ID is required"),
       })
     )
     .query(({ ctx, input }) => {
@@ -24,16 +25,16 @@ export const webhooksRouter = createTRPCRouter({
         where: {
           provider,
           userId: ctx.auth.user.id,
-          workflowId
+          workflowId,
         },
         select: {
           id: true,
           name: true,
-          workflow:{
-            select:{
-              name: true
-            }
-          }
+          workflow: {
+            select: {
+              name: true,
+            },
+          },
         },
         orderBy: {
           updatedAt: "desc",
@@ -177,5 +178,25 @@ export const webhooksRouter = createTRPCRouter({
         hasNextPage,
         hasPreviousPage,
       };
+    }),
+
+  getOneByWorkflowId: baseProcedure
+    .input(
+      z.object({
+        workflowId: z.string().min(1, "Workflow ID is required"),
+        provider: z.enum(WebhookProvider),
+      })
+    )
+    .query(({ input }) => {
+      const { workflowId, provider } = input;
+
+      return prisma.webhookVerification.findUnique({
+        where: {
+          workflowId_provider: {
+            workflowId,
+            provider,
+          },
+        },
+      });
     }),
 });
