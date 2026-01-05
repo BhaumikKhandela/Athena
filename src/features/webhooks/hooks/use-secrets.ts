@@ -25,9 +25,13 @@ export const useCreateSecret = () => {
 
   return useMutation(
     trpc.webhooks.create.mutationOptions({
-      onSuccess: (data) => {
+      onSuccess: (data, variables) => {
+        const { provider, workflowId } = variables;
         toast.success(`${data.name} secret created for ${data.provider}`);
         queryClient.invalidateQueries(trpc.webhooks.getMany.queryOptions({}));
+        queryClient.invalidateQueries(
+          trpc.webhooks.getByProvider.queryOptions({ provider, workflowId })
+        );
       },
       onError: (error) => {
         toast.error(`Failed to create secret: ${error?.message}`);
@@ -81,4 +85,13 @@ export const useUpdateSecret = () => {
       },
     })
   );
+};
+
+/**
+ * Hook to fetch a single credential using suspense
+ */
+
+export const useSuspenseSecret = (id: string) => {
+  const trpc = useTRPC();
+  return useSuspenseQuery(trpc.webhooks.getOne.queryOptions({ id }));
 };

@@ -1,11 +1,11 @@
 import {
-  CredentialsList,
-  CredentialsContainer,
-  CredentialsError,
-  CredentialsLoading,
-} from "@/features/credentials/components/credentials";
-import { credentialsParamsLoader } from "@/features/credentials/server/params-loader";
-import { prefetchCredentials } from "@/features/credentials/server/prefetch";
+  SigningSecretsContainer,
+  SigningSecretsError,
+  SigningSecretsList,
+  SigningSecretsLoading,
+} from "@/features/webhooks/components/signing-secrets";
+import { signingSecretsParamsLoader } from "@/features/webhooks/server/params-loader";
+import { prefetchSigningSecrets } from "@/features/webhooks/server/prefetch";
 import { requireAuth } from "@/lib/auth-utils";
 import { HydrateClient } from "@/trpc/server";
 import { SearchParams } from "nuqs";
@@ -18,18 +18,18 @@ type Props = {
 const Page = async ({ searchParams }: Props) => {
   await requireAuth();
 
-  const params = await credentialsParamsLoader(searchParams);
-  prefetchCredentials(params);
+  const params = await signingSecretsParamsLoader(searchParams);
+  prefetchSigningSecrets(params);
   return (
-    <CredentialsContainer>
+    <SigningSecretsContainer>
       <HydrateClient>
-        <ErrorBoundary fallback={<CredentialsError />}>
-          <Suspense fallback={<CredentialsLoading />}>
-            <CredentialsList />
+        <ErrorBoundary fallback={<SigningSecretsError />}>
+          <Suspense fallback={<SigningSecretsLoading />}>
+            <SigningSecretsList />
           </Suspense>
         </ErrorBoundary>
       </HydrateClient>
-    </CredentialsContainer>
+    </SigningSecretsContainer>
   );
 };
 
