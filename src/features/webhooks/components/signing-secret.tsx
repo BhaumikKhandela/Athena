@@ -280,7 +280,7 @@ export const SigningSecretForm = ({ initialData }: SecretFormProps) => {
                   <FormItem>
                     <FormLabel>Signing Secret</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="sk-..." {...field} />
+                      <Input type="password" placeholder="whsec_..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
