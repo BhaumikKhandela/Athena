@@ -7,6 +7,7 @@ import {
   KeyIcon,
   LogOutIcon,
   StarIcon,
+  WebhookIcon,
 } from "lucide-react";
 
 import Image from "next/image";
@@ -46,6 +47,11 @@ const menuItems = [
         title: "Executions",
         icon: HistoryIcon,
         url: "/executions",
+      },
+      {
+        title: "Webhooks",
+        icon: WebhookIcon,
+        url: "/webhooks",
       },
     ],
   },

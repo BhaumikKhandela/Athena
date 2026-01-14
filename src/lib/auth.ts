@@ -5,10 +5,7 @@ import {
   polar,
   checkout,
   portal,
-  usage,
-  webhooks,
 } from "@polar-sh/better-auth";
-import { Polar } from "@polar-sh/sdk";
 import { polarClient } from "./polar";
 
 export const auth = betterAuth({
