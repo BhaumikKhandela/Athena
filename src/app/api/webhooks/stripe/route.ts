@@ -3,6 +3,7 @@ import { sendWorkflowExecution } from "@/inngest/utils";
 import { type NextRequest, NextResponse } from "next/server";
 import { WebhookProvider } from "@/generated/prisma/enums";
 import prisma from "@/lib/db";
+import { decrypt } from "@/lib/encryption";
 
 const stripe = new Stripe("dummy_secret_key", {
   typescript: true,
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rawBody = await request.text();
+    const rawBody = Buffer.from(await request.arrayBuffer())
 
     let event: Stripe.Event;
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       event = stripe.webhooks.constructEvent(
         rawBody,
         sig,
-        stripeSecret.signingSecret
+        decrypt(stripeSecret.signingSecret)
       );
     } catch (error: any) {
       console.error(`Webhook signature verification failed: ${error?.message}`);
@@ -92,7 +93,6 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.log("Stripe webhook error: ", error);
     return NextResponse.json(
       {
         success: false,
