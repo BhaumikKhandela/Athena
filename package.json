@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "prebuild": "rm -rf src/generated/prisma && prisma generate",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",
