@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
@@ -53,54 +52,66 @@ export function SignUpForm() {
   });
 
   const onSubmit = async (values: SignupFormValues) => {
-    await authClient.signUp.email(
-      {
-        name: values.email,
-        email: values.email,
-        password: values.password,
-        callbackURL: "/",
-      },
-      {
-        onSuccess: () => {
-          router.push("/");
+    try {
+      await authClient.signUp.email(
+        {
+          name: values.email,
+          email: values.email,
+          password: values.password,
+          callbackURL: "/",
         },
-        onError: (ctx) => {
-          toast.error(ctx.error.message);
-        },
-      }
-    );
+        {
+          onSuccess: () => {
+            router.push("/");
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error.message);
+          },
+        }
+      );
+    } catch {
+      toast.error("Unable to connect. Please try again.");
+    }
   };
 
   const signInGithub = async () => {
-    await authClient.signIn.social(
-      {
-        provider: "github",
-      },
-      {
-        onSuccess: () => {
-          router.push("/");
+    try {
+      await authClient.signIn.social(
+        {
+          provider: "github",
         },
-        onError: () => {
-          toast.error("Something went wrong");
-        },
-      }
-    );
+        {
+          onSuccess: () => {
+            router.push("/");
+          },
+          onError: () => {
+            toast.error("Something went wrong");
+          },
+        }
+      );
+    } catch {
+      toast.error("Unable to connect. Please try again.");
+    }
   };
 
    const signInGoogle = async () => {
-    await authClient.signIn.social(
-      {
-        provider: "google",
-      },
-      {
-        onSuccess: () => {
-          router.push("/");
+    try {
+      await authClient.signIn.social(
+        {
+          provider: "google",
         },
-        onError: () => {
-          toast.error("Something went wrong");
-        },
-      }
-    );
+        {
+          onSuccess: () => {
+            router.push("/");
+          },
+          onError: () => {
+            toast.error("Something went wrong");
+          },
+        }
+      );
+    } catch {
+      toast.error("Unable to connect. Please try again.");
+    }
   };
 
   const isPending = form.formState.isSubmitting;
