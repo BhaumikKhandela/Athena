@@ -1,14 +1,14 @@
-import { NodeType } from "@/generated/prisma/enums";
-import { NodeExecutor } from "../types";
-import { manualTriggerExecutor } from "@/features/triggers/components/manual-trigger/executor";
-import { httpRequestExecutor } from "../components/http-request/executor";
-import { googleFormTriggerExecutor } from "@/features/triggers/components/google-form-trigger/executor";
-import { stripeTriggerExecutor } from "@/features/triggers/components/stripe-trigger/executor";
-import { geminiExecutor } from "../components/gemini/executor";
-import { openAiExecutor } from "../components/openai/executor";
-import { anthropicExecutor } from "../components/anthropic/executor";
-import { discordExecutor } from "../components/discord/executor";
-import { slackExecutor } from "../components/slack/executor";
+import { NODE_TYPE } from "@/plugins/node-type-ids";
+import { anthropicExecutor } from "@/plugins/nodes/anthropic/executor";
+import { discordExecutor } from "@/plugins/nodes/discord/executor";
+import { geminiExecutor } from "@/plugins/nodes/gemini/executor";
+import { googleFormTriggerExecutor } from "@/plugins/nodes/google-form-trigger/executor";
+import { httpRequestExecutor } from "@/plugins/nodes/http-request/executor";
+import { manualTriggerExecutor } from "@/plugins/nodes/manual-trigger/executor";
+import { openAiExecutor } from "@/plugins/nodes/openai/executor";
+import { slackExecutor } from "@/plugins/nodes/slack/executor";
+import { stripeTriggerExecutor } from "@/plugins/nodes/stripe-trigger/executor";
+import type { NodeExecutor } from "../types";
 
 export type HttpRequestData = {
   variableName: string;
@@ -17,37 +17,20 @@ export type HttpRequestData = {
   body?: string;
 };
 
-interface NodeDataMap {
-  [NodeType.HTTP_REQUEST]: HttpRequestData;
-  [NodeType.MANUAL_TRIGGER]: Record<string, unknown>;
-  [NodeType.INITIAL]: Record<string, unknown>;
-  [NodeType.GOOGLE_FORM_TRIGGER]: Record<string, unknown>;
-  [NodeType.STRIPE_TRIGGER]: Record<string, any>;
-  [NodeType.GEMINI]: Record<string, any>;
-  [NodeType.OPENAI]: Record<string, any>;
-  [NodeType.ANTHROPIC]: Record<string, any>;
-  [NodeType.DISCORD]: Record<string, any>;
-  [NodeType.SLACK]: Record<string, any>;
-}
-
-export const executorRegistry: {
-  [K in NodeType]: NodeExecutor<NodeDataMap[K]>;
-} = {
-  [NodeType.MANUAL_TRIGGER]: manualTriggerExecutor,
-  [NodeType.INITIAL]: manualTriggerExecutor,
-  [NodeType.HTTP_REQUEST]: httpRequestExecutor,
-  [NodeType.GOOGLE_FORM_TRIGGER]: googleFormTriggerExecutor,
-  [NodeType.STRIPE_TRIGGER]: stripeTriggerExecutor,
-  [NodeType.GEMINI]: geminiExecutor,
-  [NodeType.OPENAI]: openAiExecutor,
-  [NodeType.ANTHROPIC]: anthropicExecutor,
-  [NodeType.DISCORD]: discordExecutor,
-  [NodeType.SLACK]: slackExecutor,
+export const executorRegistry: Record<string, NodeExecutor> = {
+  [NODE_TYPE.MANUAL_TRIGGER]: manualTriggerExecutor as NodeExecutor,
+  [NODE_TYPE.INITIAL]: manualTriggerExecutor as NodeExecutor,
+  [NODE_TYPE.HTTP_REQUEST]: httpRequestExecutor as NodeExecutor,
+  [NODE_TYPE.GOOGLE_FORM_TRIGGER]: googleFormTriggerExecutor as NodeExecutor,
+  [NODE_TYPE.STRIPE_TRIGGER]: stripeTriggerExecutor as NodeExecutor,
+  [NODE_TYPE.GEMINI]: geminiExecutor as NodeExecutor,
+  [NODE_TYPE.OPENAI]: openAiExecutor as NodeExecutor,
+  [NODE_TYPE.ANTHROPIC]: anthropicExecutor as NodeExecutor,
+  [NODE_TYPE.DISCORD]: discordExecutor as NodeExecutor,
+  [NODE_TYPE.SLACK]: slackExecutor as NodeExecutor,
 };
 
-export const getExecutor = <T extends NodeType>(
-  type: T
-): NodeExecutor<NodeDataMap[T]> => {
+export const getExecutor = (type: string): NodeExecutor => {
   const executor = executorRegistry[type];
   if (!executor) {
     throw new Error(`No executor found for node type: ${type}`);

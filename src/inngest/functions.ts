@@ -1,24 +1,24 @@
 import { NonRetriableError } from "inngest";
-import { inngest } from "./client";
-import prisma from "@/lib/db";
-import { topologicalSort } from "./utils";
-import { ExecutionStatus, NodeType } from "@/generated/prisma/enums";
 import { getExecutor } from "@/features/executions/lib/executor-registry";
-import { httpRequestChannel } from "./channels/http-request";
-import { manualTriggerChannel } from "./channels/manual-trigger";
-import { googleFormTriggerChannel } from "./channels/google-form-trigger";
-import { stripeTriggerChannel } from "./channels/stripe-trigger";
-import { geminiChannel } from "./channels/gemini";
-import { openAiChannel } from "./channels/openai";
-import { anthropicChannel } from "./channels/anthropic";
-import { discordChannel } from "./channels/discord";
-import { slackChannel } from "./channels/slack";
+import { ExecutionStatus } from "@/generated/prisma/enums";
+import prisma from "@/lib/db";
+import { anthropicChannel } from "@/plugins/nodes/anthropic/channel";
+import { discordChannel } from "@/plugins/nodes/discord/channel";
+import { geminiChannel } from "@/plugins/nodes/gemini/channel";
+import { googleFormTriggerChannel } from "@/plugins/nodes/google-form-trigger/channel";
+import { httpRequestChannel } from "@/plugins/nodes/http-request/channel";
+import { manualTriggerChannel } from "@/plugins/nodes/manual-trigger/channel";
+import { openAiChannel } from "@/plugins/nodes/openai/channel";
+import { slackChannel } from "@/plugins/nodes/slack/channel";
+import { stripeTriggerChannel } from "@/plugins/nodes/stripe-trigger/channel";
+import { inngest } from "./client";
+import { topologicalSort } from "./utils";
 
 export const executeWorkflow = inngest.createFunction(
   {
     id: "execute-workflow",
     retries: process.env.NODE_ENV === "production" ? 3 : 0,
-    onFailure: async ({ event, step }) => {
+    onFailure: async ({ event, step: _step }) => {
       return prisma.execution.update({
         where: { inngestEventId: event.data.event.id },
         data: {
@@ -91,7 +91,7 @@ export const executeWorkflow = inngest.createFunction(
 
     // Execute each node
     for (const node of sortedNodes) {
-      const executor = getExecutor(node.type as NodeType);
+      const executor = getExecutor(node.type);
       context = await executor({
         data: node.data as Record<string, unknown>,
         nodeId: node.id,
@@ -120,5 +120,5 @@ export const executeWorkflow = inngest.createFunction(
       workflowId,
       result: context,
     };
-  }
+  },
 );
