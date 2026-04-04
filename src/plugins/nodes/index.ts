@@ -1,7 +1,7 @@
 /**
  * Node integrations live here: each folder owns Realtime `channel.ts`, Inngest
  * `executor.ts`, subscription `actions.ts` (server actions for editor tokens),
- * and trigger canvas UI under `ui/` where applicable.
+ * and trigger dialog content under `ui/dialog-content.tsx` where applicable.
  *
  * Action-node settings use schema-driven `DynamicNodeSettings` in the editor feature;
  * legacy per-integration dialogs under `features/executions` were removed.

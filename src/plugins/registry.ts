@@ -54,6 +54,9 @@ const definitions: NodePluginDefinition[] = [
     displayName: "Start",
     icon: "initial",
     properties: [],
+    inputs: 0,
+    outputs: 0,
+    shape: "default",
   },
   {
     id: NODE_TYPE.MANUAL_TRIGGER,
@@ -63,6 +66,12 @@ const definitions: NodePluginDefinition[] = [
     selectorDescription:
       "Runs the flow on clicking a button. Good for getting started quickly",
     properties: [],
+    inputs: 0,
+    outputs: 1,
+    shape: "trigger",
+    customDialogId: "manualTrigger",
+    cardTitle: "When clicking 'Execute workflow'",
+    cardSubtitle: "Runs when you click Execute workflow",
   },
   {
     id: NODE_TYPE.GOOGLE_FORM_TRIGGER,
@@ -71,6 +80,11 @@ const definitions: NodePluginDefinition[] = [
     icon: "/logos/googleform.svg",
     selectorDescription: "Runs the flow when a Google Form is submitted",
     properties: [],
+    inputs: 0,
+    outputs: 1,
+    shape: "trigger",
+    customDialogId: "googleForm",
+    cardSubtitle: "When form is submitted",
   },
   {
     id: NODE_TYPE.STRIPE_TRIGGER,
@@ -79,6 +93,10 @@ const definitions: NodePluginDefinition[] = [
     icon: "/logos/stripe.svg",
     selectorDescription: "Runs the flow when a Stripe Event is captured",
     properties: [],
+    inputs: 0,
+    outputs: 1,
+    shape: "trigger",
+    customDialogId: "stripe",
   },
   {
     id: NODE_TYPE.HTTP_REQUEST,
@@ -87,6 +105,9 @@ const definitions: NodePluginDefinition[] = [
     icon: "lucide:globe",
     selectorDescription: "Makes an HTTP request",
     summaryFields: ["endpoint", "method"],
+    inputs: 1,
+    outputs: 1,
+    shape: "default",
     properties: [
       {
         name: "variableName",
@@ -124,6 +145,9 @@ const definitions: NodePluginDefinition[] = [
     icon: "/logos/gemini.svg",
     selectorDescription: "Uses Google Gemini to generate text",
     summaryFields: ["userPrompt"],
+    inputs: 1,
+    outputs: 1,
+    shape: "default",
     properties: aiProperties(CredentialType.GEMINI),
   },
   {
@@ -133,6 +157,9 @@ const definitions: NodePluginDefinition[] = [
     icon: "/logos/openai.svg",
     selectorDescription: "Uses OpenAI to generate text",
     summaryFields: ["userPrompt"],
+    inputs: 1,
+    outputs: 1,
+    shape: "default",
     properties: aiProperties(CredentialType.OPENAI),
   },
   {
@@ -142,6 +169,9 @@ const definitions: NodePluginDefinition[] = [
     icon: "/logos/anthropic.svg",
     selectorDescription: "Uses Anthropic to generate text",
     summaryFields: ["userPrompt"],
+    inputs: 1,
+    outputs: 1,
+    shape: "default",
     properties: aiProperties(CredentialType.ANTHROPIC),
   },
   {
@@ -151,6 +181,9 @@ const definitions: NodePluginDefinition[] = [
     icon: "/logos/discord.svg",
     selectorDescription: "Send a message to Discord",
     summaryFields: ["content"],
+    inputs: 1,
+    outputs: 1,
+    shape: "default",
     properties: [
       {
         name: "variableName",
@@ -188,6 +221,9 @@ const definitions: NodePluginDefinition[] = [
     icon: "/logos/slack.svg",
     selectorDescription: "Send a message to Slack",
     summaryFields: ["content"],
+    inputs: 1,
+    outputs: 1,
+    shape: "default",
     properties: [
       {
         name: "variableName",

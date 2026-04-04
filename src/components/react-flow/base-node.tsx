@@ -2,17 +2,21 @@ import { CheckCircle2, Loader2Icon, XCircleIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { forwardRef, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import type { NodeCanvasShape } from "@/plugins/types";
 import type { NodeStatus } from "./node-status-indicator";
 
 interface BaseNodeProps extends HTMLAttributes<HTMLDivElement> {
   status?: NodeStatus;
+  /** Trigger nodes use a left-rounded pill; actions use default corners. */
+  shape?: NodeCanvasShape;
 }
 export const BaseNode = forwardRef<HTMLDivElement, BaseNodeProps>(
-  ({ className, status, ...props }, ref) => (
+  ({ className, status, shape = "default", ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "bg-card text-card-foreground relative rounded-sm border border-muted-foreground hover:bg-accent",
+        "bg-card text-card-foreground relative border border-muted-foreground hover:bg-accent",
+        shape === "trigger" ? "rounded-l-2xl rounded-r-sm" : "rounded-sm",
         className,
       )}
       tabIndex={0}

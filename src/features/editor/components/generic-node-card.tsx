@@ -1,6 +1,7 @@
 "use client";
 
 import { type NodeProps, useReactFlow } from "@xyflow/react";
+import { useParams } from "next/navigation";
 import { memo, useState } from "react";
 import { InitialNode } from "@/components/initial-node";
 import {
@@ -17,9 +18,7 @@ import { getNodeSummary } from "@/features/editor/lib/node-summary";
 import { BaseExecutionNode } from "@/features/executions/components/base-execution-node";
 import { useNodeStatus } from "@/features/executions/hooks/use-node-status";
 import { NODE_TYPE, type NodeTypeId } from "@/plugins/node-type-ids";
-import { GoogleFormTrigger } from "@/plugins/nodes/google-form-trigger/ui/node";
-import { ManualTriggerNode } from "@/plugins/nodes/manual-trigger/ui/node";
-import { StripeTriggerNode } from "@/plugins/nodes/stripe-trigger/ui/node";
+import { getPluginDialogOverride } from "@/plugins/plugin-dialogs";
 import { getNodePlugin } from "@/plugins/registry";
 import type { NodePluginDefinition } from "@/plugins/types";
 import { DynamicNodeSettings } from "./dynamic-node-settings";
@@ -33,10 +32,13 @@ const SchemaActionNodeInner = memo(
   ({ id, plugin, data, status, ...props }: SchemaInnerProps) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const { setNodes } = useReactFlow();
+    const params = useParams();
+    const workflowId = (params?.workflowId as string) ?? "";
     const nodeData = (data ?? {}) as Record<string, unknown>;
 
     const description = getNodeSummary(plugin.id, nodeData);
     const icon = getPluginIconForBaseNode(plugin.icon);
+    const cardName = plugin.cardTitle ?? plugin.displayName;
 
     const handleSubmit = (values: Record<string, unknown>) => {
       setNodes((nodes) =>
@@ -58,28 +60,44 @@ const SchemaActionNodeInner = memo(
 
     const handleOpenSettings = () => setDialogOpen(true);
 
+    const DialogOverride = getPluginDialogOverride(plugin.customDialogId);
+
     return (
       <>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{plugin.displayName}</DialogTitle>
-              <DialogDescription>
-                Configure this node. Save the workflow from the toolbar to
-                persist.
-              </DialogDescription>
-            </DialogHeader>
-            {plugin.properties.length > 0 ? (
-              <DynamicNodeSettings
+            {DialogOverride ? (
+              <DialogOverride
+                nodeId={id}
+                workflowId={workflowId}
+                data={nodeData}
                 open={dialogOpen}
-                properties={plugin.properties}
-                defaultValues={nodeData}
+                onOpenChange={setDialogOpen}
                 onSubmit={handleSubmit}
               />
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No settings for this node.
-              </p>
+              <>
+                <DialogHeader>
+                  <DialogTitle>{plugin.displayName}</DialogTitle>
+                  <DialogDescription>
+                    Configure this node. Save the workflow from the toolbar to
+                    persist.
+                  </DialogDescription>
+                </DialogHeader>
+                {plugin.properties.length > 0 ? (
+                  <DynamicNodeSettings
+                    open={dialogOpen}
+                    properties={plugin.properties}
+                    defaultValues={nodeData}
+                    onSubmit={handleSubmit}
+                    workflowId={workflowId}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No settings for this node.
+                  </p>
+                )}
+              </>
             )}
           </DialogContent>
         </Dialog>
@@ -88,11 +106,14 @@ const SchemaActionNodeInner = memo(
           id={id}
           data={data}
           icon={icon}
-          name={plugin.displayName}
+          name={cardName}
           description={description}
           onSettings={handleOpenSettings}
           onDoubleClick={handleOpenSettings}
           status={status}
+          inputs={plugin.inputs ?? 1}
+          outputs={plugin.outputs ?? 1}
+          shape={plugin.shape ?? "default"}
         />
       </>
     );
@@ -151,12 +172,6 @@ export const GenericNodeCard = memo((props: NodeProps) => {
   switch (t) {
     case NODE_TYPE.INITIAL:
       return <InitialNode {...props} />;
-    case NODE_TYPE.MANUAL_TRIGGER:
-      return <ManualTriggerNode {...props} />;
-    case NODE_TYPE.GOOGLE_FORM_TRIGGER:
-      return <GoogleFormTrigger {...props} />;
-    case NODE_TYPE.STRIPE_TRIGGER:
-      return <StripeTriggerNode {...props} />;
     default:
       return <SchemaActionNode {...props} />;
   }

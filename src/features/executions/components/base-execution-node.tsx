@@ -5,12 +5,13 @@ import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { memo, type ReactNode } from "react";
 import { BaseNode, BaseNodeContent } from "@/components/react-flow/base-node";
-import { BaseHandle } from "../../../components/react-flow/base-handle";
-import { WorkflowNode } from "../../../components/workflow-node";
 import {
   type NodeStatus,
   NodeStatusIndicator,
 } from "@/components/react-flow/node-status-indicator";
+import type { NodeCanvasShape } from "@/plugins/types";
+import { BaseHandle } from "../../../components/react-flow/base-handle";
+import { WorkflowNode } from "../../../components/workflow-node";
 
 interface BaseExecutionNodeProps extends NodeProps {
   icon: LucideIcon | string;
@@ -20,6 +21,9 @@ interface BaseExecutionNodeProps extends NodeProps {
   status?: NodeStatus;
   onSettings?: () => void;
   onDoubleClick?: () => void;
+  inputs?: number;
+  outputs?: number;
+  shape?: NodeCanvasShape;
 }
 
 export const BaseExecutionNode = memo(
@@ -32,6 +36,9 @@ export const BaseExecutionNode = memo(
     status = "initial",
     onSettings,
     onDoubleClick,
+    inputs = 1,
+    outputs = 1,
+    shape = "default",
   }: BaseExecutionNodeProps) => {
     const { setNodes, setEdges } = useReactFlow();
 
@@ -43,11 +50,13 @@ export const BaseExecutionNode = memo(
 
       setEdges((currentEdges) => {
         const updatedEdges = currentEdges.filter(
-          (edge) => edge.source !== id && edge.target !== id
+          (edge) => edge.source !== id && edge.target !== id,
         );
         return updatedEdges;
       });
     };
+
+    const triggerShapeClass = shape === "trigger" ? "rounded-l-2xl" : undefined;
 
     return (
       <WorkflowNode
@@ -56,8 +65,12 @@ export const BaseExecutionNode = memo(
         onDelete={handleDelete}
         onSettings={onSettings}
       >
-        <NodeStatusIndicator status={status} variant="border">
-          <BaseNode status={status} onDoubleClick={onDoubleClick}>
+        <NodeStatusIndicator
+          status={status}
+          variant="border"
+          className={triggerShapeClass}
+        >
+          <BaseNode status={status} shape={shape} onDoubleClick={onDoubleClick}>
             <BaseNodeContent>
               {typeof Icon === "string" ? (
                 <Image src={Icon} alt={name} width={16} height={16} />
@@ -65,22 +78,28 @@ export const BaseExecutionNode = memo(
                 <Icon className="size-4 text-muted-foreground" />
               )}
               {children}
-              <BaseHandle
-                id="target-1"
-                type="target"
-                position={Position.Left}
-              />
-              <BaseHandle
-                id="source-1"
-                type="source"
-                position={Position.Right}
-              />
+              {Array.from({ length: inputs }, (_, i) => (
+                <BaseHandle
+                  key={`target-${i + 1}`}
+                  id={`target-${i + 1}`}
+                  type="target"
+                  position={Position.Left}
+                />
+              ))}
+              {Array.from({ length: outputs }, (_, i) => (
+                <BaseHandle
+                  key={`source-${i + 1}`}
+                  id={`source-${i + 1}`}
+                  type="source"
+                  position={Position.Right}
+                />
+              ))}
             </BaseNodeContent>
           </BaseNode>
         </NodeStatusIndicator>
       </WorkflowNode>
     );
-  }
+  },
 );
 
 BaseExecutionNode.displayName = "BaseExecutionNode";

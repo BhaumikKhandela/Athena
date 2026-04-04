@@ -68,8 +68,16 @@ export function getNodeSummary(
       }
       break;
     }
+    case NODE_TYPE.STRIPE_TRIGGER: {
+      const sid = data.secretId;
+      return sid ? "Configured" : "Not configured";
+    }
     default:
       break;
+  }
+
+  if (plugin?.cardSubtitle) {
+    return plugin.cardSubtitle;
   }
 
   return "Not configured";

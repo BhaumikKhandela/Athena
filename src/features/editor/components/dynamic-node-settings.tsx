@@ -1,8 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CopyIcon } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useForm, useFormContext } from "react-hook-form";
+import { toast } from "sonner";
 import z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,6 +87,9 @@ function buildZodSchema(properties: NodeProperty[]) {
           : z.string().optional();
         break;
       }
+      case "webhook-display":
+      case "manual-execution-info":
+        break;
       default:
         break;
     }
@@ -121,6 +126,9 @@ function defaultValuesForProperties(
         break;
       case "credential":
         out[p.name] = typeof prev === "string" ? prev : "";
+        break;
+      case "webhook-display":
+      case "manual-execution-info":
         break;
       default:
         break;
@@ -176,12 +184,60 @@ function CredentialSelectField({
   );
 }
 
+function WebhookDisplayWidget({
+  provider,
+  workflowId,
+}: {
+  provider: "stripe" | "google-form";
+  workflowId?: string;
+}) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const displayUrl =
+    workflowId != null && workflowId !== ""
+      ? `${baseUrl}${provider === "stripe" ? `/api/webhooks/stripe?workflowId=${workflowId}` : `/api/webhooks/google-form?workflowId=${workflowId}`}`
+      : "";
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(displayUrl);
+      toast.success("Webhook URL copied to clipboard");
+    } catch {
+      toast.error("Failed to copy URL");
+    }
+  };
+
+  if (!workflowId) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Webhook URL is available when this workflow is saved and opened from the
+        editor.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <FormLabel>
+        {provider === "stripe" ? "Stripe" : "Google Form"} webhook URL
+      </FormLabel>
+      <div className="flex gap-2">
+        <Input readOnly className="font-mono text-sm" value={displayUrl} />
+        <Button type="button" size="icon" variant="outline" onClick={copy}>
+          <CopyIcon className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export interface DynamicNodeSettingsProps {
   properties: NodeProperty[];
   defaultValues?: Record<string, unknown>;
   /** When true, form resets when defaults change (e.g. dialog reopened). */
   open?: boolean;
   onSubmit: (values: Record<string, unknown>) => void;
+  /** Required for webhook-display widgets. */
+  workflowId?: string;
 }
 
 export function DynamicNodeSettings({
@@ -189,6 +245,7 @@ export function DynamicNodeSettings({
   defaultValues,
   open,
   onSubmit,
+  workflowId,
 }: DynamicNodeSettingsProps) {
   const schema = useMemo(() => buildZodSchema(properties), [properties]);
 
@@ -216,6 +273,33 @@ export function DynamicNodeSettings({
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-6">
         {properties.map((p) => {
+          if (p.type === "webhook-display") {
+            return (
+              <div key={p.name}>
+                <WebhookDisplayWidget
+                  provider={p.provider}
+                  workflowId={workflowId}
+                />
+                {p.description && (
+                  <FormDescription className="mt-2">
+                    {p.description}
+                  </FormDescription>
+                )}
+              </div>
+            );
+          }
+          if (p.type === "manual-execution-info") {
+            return (
+              <div key={p.name} className="rounded-lg border p-3">
+                <p className="text-sm font-medium">{p.displayName}</p>
+                {p.description && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {p.description}
+                  </p>
+                )}
+              </div>
+            );
+          }
           if (p.type === "credential") {
             return <CredentialSelectField key={p.name} property={p} />;
           }
