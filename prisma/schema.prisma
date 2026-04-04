@@ -116,26 +116,13 @@ model Workflow {
 
 }
 
-enum NodeType {
-  INITIAL
-  MANUAL_TRIGGER
-  HTTP_REQUEST
-  GOOGLE_FORM_TRIGGER
-  STRIPE_TRIGGER
-  ANTHROPIC
-  GEMINI
-  OPENAI
-  DISCORD
-  SLACK
-}
-
 model Node {
   id String @id @default(cuid())
   workflowId String
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   name String
-  type NodeType
+  type String
   position Json
   data Json @default("{}")
 

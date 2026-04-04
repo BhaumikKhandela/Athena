@@ -1,20 +1,23 @@
-import type { ComponentProps } from "react";
-
-import { cn } from "@/lib/utils";
-import { forwardRef, type HTMLAttributes } from "react";
-import { NodeStatus } from "./node-status-indicator";
 import { CheckCircle2, Loader2Icon, XCircleIcon } from "lucide-react";
+import type { ComponentProps } from "react";
+import { forwardRef, type HTMLAttributes } from "react";
+import { cn } from "@/lib/utils";
+import type { NodeCanvasShape } from "@/plugins/types";
+import type { NodeStatus } from "./node-status-indicator";
 
 interface BaseNodeProps extends HTMLAttributes<HTMLDivElement> {
   status?: NodeStatus;
+  /** Trigger nodes use a left-rounded pill; actions use default corners. */
+  shape?: NodeCanvasShape;
 }
 export const BaseNode = forwardRef<HTMLDivElement, BaseNodeProps>(
-  ({ className, status, ...props }, ref) => (
+  ({ className, status, shape = "default", ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "bg-card text-card-foreground relative rounded-sm border border-muted-foreground hover:bg-accent",
-        className
+        "bg-card text-card-foreground relative border border-muted-foreground hover:bg-accent",
+        shape === "trigger" ? "rounded-l-2xl rounded-r-sm" : "rounded-sm",
+        className,
       )}
       tabIndex={0}
       {...props}
@@ -30,7 +33,7 @@ export const BaseNode = forwardRef<HTMLDivElement, BaseNodeProps>(
         <Loader2Icon className="absolute -right-0.5 -bottom-0.5 size-2 text-blue-700 stroke-3 animate-spin" />
       )}
     </div>
-  )
+  ),
 );
 
 /**
@@ -48,7 +51,7 @@ export function BaseNodeHeader({
         "mx-0 my-0 -mb-1 flex flex-row items-center justify-between gap-2 px-3 py-2",
         // Remove or modify these classes if you modify the padding in the
         // `<BaseNode />` component.
-        className
+        className,
       )}
     />
   );
@@ -90,7 +93,7 @@ export function BaseNodeFooter({ className, ...props }: ComponentProps<"div">) {
       data-slot="base-node-footer"
       className={cn(
         "flex flex-col items-center gap-y-2 border-t px-3 pt-2 pb-3",
-        className
+        className,
       )}
       {...props}
     />
