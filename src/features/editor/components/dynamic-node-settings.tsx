@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CopyIcon } from "lucide-react";
-import { useEffect, useMemo } from "react";
-import { useForm, useFormContext } from "react-hook-form";
+import Image from "next/image";
+import { type ReactNode, useEffect, useMemo } from "react";
+import { useForm, useFormContext, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,15 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCredentialsByType } from "@/features/credentials/hooks/use-credentials";
+import { CredentialType } from "@/generated/prisma/enums";
+import { cn } from "@/lib/utils";
 import type { NodeProperty } from "@/plugins/types";
+
+const CREDENTIAL_LOGO_BY_TYPE: Record<CredentialType, string> = {
+  [CredentialType.OPENAI]: "/logos/openai.svg",
+  [CredentialType.ANTHROPIC]: "/logos/anthropic.svg",
+  [CredentialType.GEMINI]: "/logos/gemini.svg",
+};
 
 function buildZodSchema(properties: NodeProperty[]) {
   const shape: Record<string, z.ZodTypeAny> = {};
@@ -149,6 +158,8 @@ function CredentialSelectField({
     property.credentialType,
   );
 
+  const logoSrc = CREDENTIAL_LOGO_BY_TYPE[property.credentialType];
+
   return (
     <FormField
       control={form.control}
@@ -162,14 +173,23 @@ function CredentialSelectField({
             value={field.value || ""}
           >
             <FormControl>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a credential" />
               </SelectTrigger>
             </FormControl>
             <SelectContent>
               {credentials?.map((cred) => (
                 <SelectItem key={cred.id} value={cred.id}>
-                  {cred.name}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Image
+                      alt=""
+                      className="size-[18px] shrink-0"
+                      height={18}
+                      src={logoSrc}
+                      width={18}
+                    />
+                    <span className="truncate">{cred.name}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -182,6 +202,55 @@ function CredentialSelectField({
       )}
     />
   );
+}
+
+function VariableNameReferenceHint({
+  fallback,
+  referencePath = "text",
+}: {
+  fallback: string;
+  /** Dotted path after the variable name, e.g. `httpResponse.data`. */
+  referencePath?: string;
+}) {
+  const raw = useWatch({ name: "variableName" });
+  const safe = typeof raw === "string" && raw.trim() ? raw.trim() : fallback;
+  return (
+    <FormDescription>
+      Use this name to reference the result in other nodes:{" "}
+      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{`{{${safe}.${referencePath}}}`}</code>
+    </FormDescription>
+  );
+}
+
+function SchemaFieldVisibleWhen({
+  when,
+  children,
+}: {
+  when?: { field: string; values: string[] };
+  children: ReactNode;
+}) {
+  if (!when) {
+    return <>{children}</>;
+  }
+  return (
+    <SchemaFieldVisibleWhenInner when={when}>
+      {children}
+    </SchemaFieldVisibleWhenInner>
+  );
+}
+
+function SchemaFieldVisibleWhenInner({
+  when,
+  children,
+}: {
+  when: { field: string; values: string[] };
+  children: ReactNode;
+}) {
+  const value = useWatch({ name: when.field });
+  if (!when.values.includes(String(value ?? ""))) {
+    return null;
+  }
+  return <>{children}</>;
 }
 
 function WebhookDisplayWidget({
@@ -272,185 +341,210 @@ export function DynamicNodeSettings({
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {properties.map((p) => {
-          if (p.type === "webhook-display") {
-            return (
-              <div key={p.name}>
-                <WebhookDisplayWidget
-                  provider={p.provider}
-                  workflowId={workflowId}
-                />
-                {p.description && (
-                  <FormDescription className="mt-2">
-                    {p.description}
-                  </FormDescription>
-                )}
-              </div>
-            );
-          }
-          if (p.type === "manual-execution-info") {
-            return (
-              <div key={p.name} className="rounded-lg border p-3">
-                <p className="text-sm font-medium">{p.displayName}</p>
-                {p.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {p.description}
-                  </p>
-                )}
-              </div>
-            );
-          }
-          if (p.type === "credential") {
-            return <CredentialSelectField key={p.name} property={p} />;
-          }
-
-          if (p.type === "options") {
-            return (
-              <FormField
-                key={p.name}
-                control={form.control}
-                name={p.name}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{p.displayName}</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={String(field.value ?? p.options[0]?.value ?? "")}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {p.options.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+        {properties.map((p) => (
+          <SchemaFieldVisibleWhen key={p.name} when={p.visibleWhen}>
+            {(() => {
+              if (p.type === "webhook-display") {
+                return (
+                  <div>
+                    <WebhookDisplayWidget
+                      provider={p.provider}
+                      workflowId={workflowId}
+                    />
                     {p.description && (
-                      <FormDescription>{p.description}</FormDescription>
+                      <FormDescription className="mt-2">
+                        {p.description}
+                      </FormDescription>
                     )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            );
-          }
+                  </div>
+                );
+              }
+              if (p.type === "manual-execution-info") {
+                return (
+                  <div className="rounded-lg border p-3">
+                    <p className="text-sm font-medium">{p.displayName}</p>
+                    {p.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {p.description}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              if (p.type === "credential") {
+                return <CredentialSelectField property={p} />;
+              }
 
-          if (p.type === "boolean") {
-            return (
-              <FormField
-                key={p.name}
-                control={form.control}
-                name={p.name}
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
+              if (p.type === "options") {
+                return (
+                  <FormField
+                    control={form.control}
+                    name={p.name}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{p.displayName}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={String(
+                            field.value ?? p.options[0]?.value ?? "",
+                          )}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a method" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {p.options.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {p.description && (
+                          <FormDescription>{p.description}</FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                );
+              }
+
+              if (p.type === "boolean") {
+                return (
+                  <FormField
+                    control={form.control}
+                    name={p.name}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>{p.displayName}</FormLabel>
+                          {p.description && (
+                            <FormDescription>{p.description}</FormDescription>
+                          )}
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={Boolean(field.value)}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                );
+              }
+
+              if (p.type === "number") {
+                return (
+                  <FormField
+                    control={form.control}
+                    name={p.name}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{p.displayName}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            value={
+                              field.value === undefined || field.value === null
+                                ? ""
+                                : String(field.value)
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value),
+                              )
+                            }
+                          />
+                        </FormControl>
+                        {p.description && (
+                          <FormDescription>{p.description}</FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                );
+              }
+
+              if (p.type !== "string") {
+                return null;
+              }
+              const multiline = p.multiline;
+              const isVariableNameField = p.name === "variableName";
+              const descMultiline = p.description?.includes("\n") ?? false;
+              return (
+                <FormField
+                  control={form.control}
+                  name={p.name}
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>{p.displayName}</FormLabel>
-                      {p.description && (
-                        <FormDescription>{p.description}</FormDescription>
+                      <FormControl>
+                        {multiline ? (
+                          <Textarea
+                            className={cn(
+                              "min-h-[80px] font-mono text-sm",
+                              p.textareaClassName,
+                            )}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            placeholder={p.placeholder}
+                            ref={field.ref}
+                            onChange={field.onChange}
+                            value={
+                              field.value === undefined || field.value === null
+                                ? ""
+                                : String(field.value)
+                            }
+                          />
+                        ) : (
+                          <Input
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            placeholder={p.placeholder}
+                            ref={field.ref}
+                            onChange={field.onChange}
+                            value={
+                              field.value === undefined || field.value === null
+                                ? ""
+                                : String(field.value)
+                            }
+                          />
+                        )}
+                      </FormControl>
+                      {isVariableNameField ? (
+                        <VariableNameReferenceHint
+                          fallback={p.variableNameHintFallback ?? "myNode"}
+                          referencePath={p.variableNameReferencePath}
+                        />
+                      ) : (
+                        p.description && (
+                          <FormDescription
+                            className={
+                              descMultiline ? "whitespace-pre-line" : undefined
+                            }
+                          >
+                            {p.description}
+                          </FormDescription>
+                        )
                       )}
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={Boolean(field.value)}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            );
-          }
-
-          if (p.type === "number") {
-            return (
-              <FormField
-                key={p.name}
-                control={form.control}
-                name={p.name}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{p.displayName}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                        value={
-                          field.value === undefined || field.value === null
-                            ? ""
-                            : String(field.value)
-                        }
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? undefined
-                              : Number(e.target.value),
-                          )
-                        }
-                      />
-                    </FormControl>
-                    {p.description && (
-                      <FormDescription>{p.description}</FormDescription>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            );
-          }
-
-          const multiline = p.type === "string" && p.multiline;
-          return (
-            <FormField
-              key={p.name}
-              control={form.control}
-              name={p.name}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{p.displayName}</FormLabel>
-                  <FormControl>
-                    {multiline ? (
-                      <Textarea
-                        className="min-h-[80px] font-mono text-sm"
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                        onChange={field.onChange}
-                        value={
-                          field.value === undefined || field.value === null
-                            ? ""
-                            : String(field.value)
-                        }
-                      />
-                    ) : (
-                      <Input
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                        onChange={field.onChange}
-                        value={
-                          field.value === undefined || field.value === null
-                            ? ""
-                            : String(field.value)
-                        }
-                      />
-                    )}
-                  </FormControl>
-                  {p.description && (
-                    <FormDescription>{p.description}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          );
-        })}
+                />
+              );
+            })()}
+          </SchemaFieldVisibleWhen>
+        ))}
 
         <Button type="submit" className="w-full sm:w-auto">
           Save
