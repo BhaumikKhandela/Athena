@@ -78,10 +78,12 @@ const SchemaActionNodeInner = memo(
             ) : (
               <>
                 <DialogHeader>
-                  <DialogTitle>{plugin.displayName}</DialogTitle>
+                  <DialogTitle>
+                    {plugin.settingsDialogTitle ?? plugin.displayName}
+                  </DialogTitle>
                   <DialogDescription>
-                    Configure this node. Save the workflow from the toolbar to
-                    persist.
+                    {plugin.settingsDialogDescription ??
+                      "Configure this node. Save the workflow from the toolbar to persist."}
                   </DialogDescription>
                 </DialogHeader>
                 {plugin.properties.length > 0 ? (

@@ -19,16 +19,29 @@ type NodePropertyBase = {
   displayName: string;
   required?: boolean;
   description?: string;
+  /** Input / textarea placeholder where applicable. */
+  placeholder?: string;
   /** ECMAScript regex pattern (no leading/trailing slashes). */
   pattern?: string;
   minLength?: number;
   maxLength?: number;
+  /** Show this field only when `field` matches one of `values` (e.g. HTTP body for POST/PUT/PATCH). */
+  visibleWhen?: { field: string; values: string[] };
 };
 
 export type NodeProperty =
   | (NodePropertyBase & {
       type: "string";
       multiline?: boolean;
+      /** Used for the live `{{name.text}}` hint when `name` is `variableName`. */
+      variableNameHintFallback?: string;
+      /**
+       * Path after the variable name in the live reference hint (default `text`).
+       * HTTP nodes use `httpResponse.data` → `{{name.httpResponse.data}}`.
+       */
+      variableNameReferencePath?: string;
+      /** Extra classes for multiline string controls (e.g. taller user prompt). */
+      textareaClassName?: string;
     })
   | (NodePropertyBase & {
       type: "number";
@@ -77,4 +90,8 @@ export interface NodePluginDefinition {
   cardTitle?: string;
   /** Canvas subtitle when summary fields are empty. */
   cardSubtitle?: string;
+  /** Settings dialog title for schema-driven settings; defaults to `displayName`. */
+  settingsDialogTitle?: string;
+  /** Settings dialog description for schema-driven settings. */
+  settingsDialogDescription?: string;
 }

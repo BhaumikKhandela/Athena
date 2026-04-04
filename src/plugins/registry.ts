@@ -13,39 +13,69 @@ const httpMethodOptions = [
   { name: "DELETE", value: "DELETE" },
 ];
 
-const aiProperties = (credentialType: CredentialType): NodeProperty[] => [
-  {
-    name: "variableName",
-    displayName: "Variable Name",
-    type: "string",
-    required: true,
-    pattern: VARIABLE_NAME_PATTERN,
-    description:
-      "Use this name to reference the result in other nodes (e.g. templates).",
-  },
-  {
-    name: "credentialId",
-    displayName: "Credential",
-    type: "credential",
-    credentialType,
-    required: true,
-  },
-  {
-    name: "systemPrompt",
-    displayName: "System Prompt",
-    type: "string",
-    multiline: true,
-    required: false,
-    description: "Optional system instructions for the model.",
-  },
-  {
-    name: "userPrompt",
-    displayName: "User Prompt",
-    type: "string",
-    multiline: true,
-    required: true,
-  },
-];
+/** Per-provider field copy for `aiProperties` (dialog title lives on `NodePluginDefinition`). */
+type AiNodeFieldCopy = {
+  variablePlaceholder: string;
+  variableNameHintFallback: string;
+  credentialDisplayName: string;
+  systemPromptPlaceholder: string;
+  systemPromptDescription: string;
+  userPromptPlaceholder: string;
+  userPromptDescription: string;
+  userPromptTextareaClassName?: string;
+};
+
+const AI_MODEL_DIALOG_DESCRIPTION =
+  "Configure the AI model and prompts for this node.";
+
+const AI_SYSTEM_PROMPT_HELP =
+  "Sets the behavior of the assistant. Use {{variable}} for simple values or {{json variable}} to stringify objects";
+
+const AI_USER_PROMPT_HELP =
+  "The prompt to send to the AI. Use {{variable}} for simple values or {{json variable}} to stringify objects";
+
+function aiProperties(
+  credentialType: CredentialType,
+  copy: AiNodeFieldCopy,
+): NodeProperty[] {
+  return [
+    {
+      name: "variableName",
+      displayName: "Variable Name",
+      type: "string",
+      required: true,
+      pattern: VARIABLE_NAME_PATTERN,
+      placeholder: copy.variablePlaceholder,
+      variableNameHintFallback: copy.variableNameHintFallback,
+    },
+    {
+      name: "credentialId",
+      displayName: copy.credentialDisplayName,
+      type: "credential",
+      credentialType,
+      required: true,
+    },
+    {
+      name: "systemPrompt",
+      displayName: "System Prompt (Optional)",
+      type: "string",
+      multiline: true,
+      required: false,
+      placeholder: copy.systemPromptPlaceholder,
+      description: copy.systemPromptDescription,
+    },
+    {
+      name: "userPrompt",
+      displayName: "User Prompt",
+      type: "string",
+      multiline: true,
+      required: true,
+      placeholder: copy.userPromptPlaceholder,
+      description: copy.userPromptDescription,
+      textareaClassName: copy.userPromptTextareaClassName ?? "min-h-[120px]",
+    },
+  ];
+}
 
 const definitions: NodePluginDefinition[] = [
   {
@@ -108,6 +138,8 @@ const definitions: NodePluginDefinition[] = [
     inputs: 1,
     outputs: 1,
     shape: "default",
+    settingsDialogTitle: "HTTP Request",
+    settingsDialogDescription: "Configure settings for the HTTP Request node.",
     properties: [
       {
         name: "variableName",
@@ -115,12 +147,9 @@ const definitions: NodePluginDefinition[] = [
         type: "string",
         required: true,
         pattern: VARIABLE_NAME_PATTERN,
-      },
-      {
-        name: "endpoint",
-        displayName: "Endpoint URL",
-        type: "string",
-        required: true,
+        placeholder: "myApiCall",
+        variableNameHintFallback: "myApiCall",
+        variableNameReferencePath: "httpResponse.data",
       },
       {
         name: "method",
@@ -128,13 +157,32 @@ const definitions: NodePluginDefinition[] = [
         type: "options",
         required: true,
         options: httpMethodOptions,
+        description: "The HTTP method to use for this request",
+      },
+      {
+        name: "endpoint",
+        displayName: "Endpoint URL",
+        type: "string",
+        required: true,
+        placeholder: "https://api.example.com/users/{{httpResponse.data.id}}",
+        description:
+          "Static URL or use {{variable}} for simple values or {{json variable}} to stringify objects",
       },
       {
         name: "body",
-        displayName: "Body",
+        displayName: "Request Body",
         type: "string",
         multiline: true,
         required: false,
+        visibleWhen: { field: "method", values: ["POST", "PUT", "PATCH"] },
+        placeholder: `{
+  "userId": "{{httpRequest.data.id}}",
+  "name": "{{httpResponse.data.name}}",
+  "items": "{{httpResponse.data.items}}"
+}`,
+        description:
+          "JSON with template variables. Use {{variable}} for simple values or {{json variable}} to stringify objects",
+        textareaClassName: "min-h-[120px]",
       },
     ],
   },
@@ -148,7 +196,17 @@ const definitions: NodePluginDefinition[] = [
     inputs: 1,
     outputs: 1,
     shape: "default",
-    properties: aiProperties(CredentialType.GEMINI),
+    settingsDialogTitle: "Gemini Configurations",
+    settingsDialogDescription: AI_MODEL_DIALOG_DESCRIPTION,
+    properties: aiProperties(CredentialType.GEMINI, {
+      variablePlaceholder: "myGemini",
+      variableNameHintFallback: "myGemini",
+      credentialDisplayName: "Gemini Credential",
+      systemPromptPlaceholder: " You are a helpful assistant.",
+      systemPromptDescription: AI_SYSTEM_PROMPT_HELP,
+      userPromptPlaceholder: "Summarize this text: {{json httpResponse.data}}",
+      userPromptDescription: AI_USER_PROMPT_HELP,
+    }),
   },
   {
     id: NODE_TYPE.OPENAI,
@@ -160,7 +218,17 @@ const definitions: NodePluginDefinition[] = [
     inputs: 1,
     outputs: 1,
     shape: "default",
-    properties: aiProperties(CredentialType.OPENAI),
+    settingsDialogTitle: "OpenAI Configurations",
+    settingsDialogDescription: AI_MODEL_DIALOG_DESCRIPTION,
+    properties: aiProperties(CredentialType.OPENAI, {
+      variablePlaceholder: "myOpenAI",
+      variableNameHintFallback: "myOpenAI",
+      credentialDisplayName: "OpenAI Credential",
+      systemPromptPlaceholder: " You are a helpful assistant.",
+      systemPromptDescription: AI_SYSTEM_PROMPT_HELP,
+      userPromptPlaceholder: "Summarize this text: {{json httpResponse.data}}",
+      userPromptDescription: AI_USER_PROMPT_HELP,
+    }),
   },
   {
     id: NODE_TYPE.ANTHROPIC,
@@ -172,7 +240,17 @@ const definitions: NodePluginDefinition[] = [
     inputs: 1,
     outputs: 1,
     shape: "default",
-    properties: aiProperties(CredentialType.ANTHROPIC),
+    settingsDialogTitle: "Anthropic Configurations",
+    settingsDialogDescription: AI_MODEL_DIALOG_DESCRIPTION,
+    properties: aiProperties(CredentialType.ANTHROPIC, {
+      variablePlaceholder: "myAnthropic",
+      variableNameHintFallback: "myAnthropic",
+      credentialDisplayName: "Anthropic Credential",
+      systemPromptPlaceholder: " You are a helpful assistant.",
+      systemPromptDescription: AI_SYSTEM_PROMPT_HELP,
+      userPromptPlaceholder: "Summarize this text: {{json httpResponse.data}}",
+      userPromptDescription: AI_USER_PROMPT_HELP,
+    }),
   },
   {
     id: NODE_TYPE.DISCORD,
@@ -184,6 +262,9 @@ const definitions: NodePluginDefinition[] = [
     inputs: 1,
     outputs: 1,
     shape: "default",
+    settingsDialogTitle: "Discord Configurations",
+    settingsDialogDescription:
+      "Configure the Discord webhook settings for this node.",
     properties: [
       {
         name: "variableName",
@@ -191,12 +272,17 @@ const definitions: NodePluginDefinition[] = [
         type: "string",
         required: true,
         pattern: VARIABLE_NAME_PATTERN,
+        placeholder: "myDiscord",
+        variableNameHintFallback: "myDiscord",
       },
       {
-        name: "username",
-        displayName: "Username",
+        name: "webhookUrl",
+        displayName: "Webhook URL",
         type: "string",
-        required: false,
+        required: true,
+        placeholder: "https://discord.com/api/webhooks/...",
+        description:
+          "Get this from Discord: Channel Settings → Integrations → Webhooks",
       },
       {
         name: "content",
@@ -205,12 +291,17 @@ const definitions: NodePluginDefinition[] = [
         multiline: true,
         required: true,
         maxLength: 2000,
+        placeholder: "Summary: {{myGemini.text}}",
+        description:
+          "The message to send. Use {{variable}} for simple values or {{json variable}} to stringify objects",
       },
       {
-        name: "webhookUrl",
-        displayName: "Webhook URL",
+        name: "username",
+        displayName: "Bot Username (Optional)",
         type: "string",
-        required: true,
+        required: false,
+        placeholder: "Workflow Bot",
+        description: "Override the webhook's default username.",
       },
     ],
   },
@@ -224,6 +315,9 @@ const definitions: NodePluginDefinition[] = [
     inputs: 1,
     outputs: 1,
     shape: "default",
+    settingsDialogTitle: "Slack Configurations",
+    settingsDialogDescription:
+      "Configure the Slack webhook settings for this node.",
     properties: [
       {
         name: "variableName",
@@ -231,12 +325,17 @@ const definitions: NodePluginDefinition[] = [
         type: "string",
         required: true,
         pattern: VARIABLE_NAME_PATTERN,
+        placeholder: "mySlack",
+        variableNameHintFallback: "mySlack",
       },
       {
         name: "webhookUrl",
         displayName: "Webhook URL",
         type: "string",
         required: true,
+        placeholder: "https://hooks.slack.com/services/...",
+        description:
+          'Get this from Slack: Workspace Settings → Workflows → Webhooks\n\nMake sure you have "content" variable',
       },
       {
         name: "content",
@@ -244,6 +343,9 @@ const definitions: NodePluginDefinition[] = [
         type: "string",
         multiline: true,
         required: true,
+        placeholder: "Summary: {{myGemini.text}}",
+        description:
+          "The message to send. Use {{variable}} for simple values or {{json variable}} to stringify objects",
       },
     ],
   },
