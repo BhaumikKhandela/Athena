@@ -2,12 +2,7 @@ import { checkout, polar, portal } from "@polar-sh/better-auth";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./db";
-import {
-  deletePolarCustomerOnUserDelete,
-  polarClient,
-  syncPolarCustomerOnUserCreate,
-  syncPolarCustomerOnUserUpdate,
-} from "./polar";
+import { polarClient } from "./polar";
 
 const trustedOrigins = [
   process.env.NEXT_PUBLIC_APP_URL,
@@ -21,31 +16,10 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  databaseHooks: {
-    user: {
-      create: {
-        after: async (user) => {
-          await syncPolarCustomerOnUserCreate(user);
-        },
-      },
-      update: {
-        after: async (user) => {
-          await syncPolarCustomerOnUserUpdate(user);
-        },
-      },
-      delete: {
-        after: async (user) => {
-          await deletePolarCustomerOnUserDelete(user.email);
-        },
-      },
-    },
-  },
   plugins: [
     polar({
       client: polarClient,
-      // Stock hook calls `customers.update` to set externalId; Polar rejects that.
-      // We sync in `databaseHooks` instead (see `polar.ts`).
-      createCustomerOnSignUp: false,
+      createCustomerOnSignUp: true,
       use: [
         checkout({
           products: [
