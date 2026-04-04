@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CreditCardIcon,
   FolderOpenIcon,
@@ -9,7 +10,6 @@ import {
   StarIcon,
   WebhookIcon,
 } from "lucide-react";
-
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,10 +24,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
 import { useHasActiveSubscription } from "@/features/subscriptions/hooks/use-subscription";
-import { useQueryClient } from "@tanstack/react-query";
-
+import { authClient } from "@/lib/auth-client";
 
 const menuItems = [
   {
@@ -68,7 +66,7 @@ export const AppSidebar = () => {
       <SidebarHeader>
         <SidebarMenuItem>
           <SidebarMenuButton asChild className="gap-x-4 h-10 px-4">
-            <Link href={"/"} prefetch>
+            <Link href="/workflows" prefetch>
               <Image
                 src={"/logos/logo.svg"}
                 alt="Athena"
@@ -90,11 +88,7 @@ export const AppSidebar = () => {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         tooltip={item.title}
-                        isActive={
-                          item.url === "/"
-                            ? pathname === "/"
-                            : pathname.startsWith(item.url)
-                        }
+                        isActive={pathname.startsWith(item.url)}
                         asChild
                         className="gap-x-4 h-10 px-4"
                       >

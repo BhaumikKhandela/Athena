@@ -1,9 +1,13 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -20,11 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import { toast } from "sonner";
-import Image from "next/image";
 
 const signupSchema = z
   .object({
@@ -58,16 +58,16 @@ export function SignUpForm() {
           name: values.email,
           email: values.email,
           password: values.password,
-          callbackURL: "/",
+          callbackURL: "/workflows",
         },
         {
           onSuccess: () => {
-            router.push("/");
+            router.push("/workflows");
           },
           onError: (ctx) => {
             toast.error(ctx.error.message);
           },
-        }
+        },
       );
     } catch {
       toast.error("Unable to connect. Please try again.");
@@ -82,19 +82,19 @@ export function SignUpForm() {
         },
         {
           onSuccess: () => {
-            router.push("/");
+            router.push("/workflows");
           },
           onError: () => {
             toast.error("Something went wrong");
           },
-        }
+        },
       );
     } catch {
       toast.error("Unable to connect. Please try again.");
     }
   };
 
-   const signInGoogle = async () => {
+  const signInGoogle = async () => {
     try {
       await authClient.signIn.social(
         {
@@ -102,12 +102,12 @@ export function SignUpForm() {
         },
         {
           onSuccess: () => {
-            router.push("/");
+            router.push("/workflows");
           },
           onError: () => {
             toast.error("Something went wrong");
           },
-        }
+        },
       );
     } catch {
       toast.error("Unable to connect. Please try again.");
