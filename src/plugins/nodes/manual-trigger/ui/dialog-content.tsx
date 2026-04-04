@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { PluginDialogProps } from "@/plugins/types";
+import type { PluginDialogProps } from "@/plugins/plugin-dialog-types";
 
 /** Body only: parent `GenericNodeCard` owns `Dialog` / `DialogContent`. */
 export function ManualTriggerDialogContent({

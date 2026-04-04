@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { useWebhookSecretByProvider } from "@/features/triggers/hooks/use-signing-secret";
 import { WebhookProvider } from "@/generated/prisma/enums";
-import type { PluginDialogProps } from "@/plugins/types";
+import type { PluginDialogProps } from "@/plugins/plugin-dialog-types";
 
 const formSchema = z.object({
   secretId: z.string().min(1, "Credential is required"),

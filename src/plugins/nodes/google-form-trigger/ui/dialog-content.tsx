@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { generateGoogleFormScript } from "@/plugins/nodes/google-form-trigger/utils";
-import type { PluginDialogProps } from "@/plugins/types";
+import type { PluginDialogProps } from "@/plugins/plugin-dialog-types";
 
 /** Body only: parent owns `Dialog` / `DialogContent`. */
 export function GoogleFormTriggerDialogContent({

@@ -4,7 +4,10 @@ import type { ComponentType } from "react";
 import { GoogleFormTriggerDialogContent } from "@/plugins/nodes/google-form-trigger/ui/dialog-content";
 import { ManualTriggerDialogContent } from "@/plugins/nodes/manual-trigger/ui/dialog-content";
 import { StripeTriggerDialogContent } from "@/plugins/nodes/stripe-trigger/ui/dialog-content";
-import type { PluginDialogId, PluginDialogProps } from "@/plugins/types";
+import type {
+  PluginDialogId,
+  PluginDialogProps,
+} from "@/plugins/plugin-dialog-types";
 
 export const pluginDialogOverrides: Record<
   PluginDialogId,

@@ -1,4 +1,7 @@
 import type { CredentialType } from "@/generated/prisma/enums";
+import type { PluginDialogId } from "./plugin-dialog-types";
+
+export type { PluginDialogId, PluginDialogProps } from "./plugin-dialog-types";
 
 export type NodePropertyType =
   | "string"
@@ -10,18 +13,6 @@ export type NodePropertyType =
   | "manual-execution-info";
 
 export type NodeCanvasShape = "default" | "trigger";
-
-/** Serializable id for client-only `plugin-dialogs` map (no React in registry.ts). */
-export type PluginDialogId = "manualTrigger" | "googleForm" | "stripe";
-
-export type PluginDialogProps = {
-  nodeId: string;
-  workflowId: string;
-  data: Record<string, unknown>;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (values: Record<string, unknown>) => void;
-};
 
 type NodePropertyBase = {
   name: string;
