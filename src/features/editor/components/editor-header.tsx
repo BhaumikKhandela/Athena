@@ -1,4 +1,8 @@
 "use client";
+import { useAtomValue } from "jotai";
+import { SaveIcon } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,10 +18,7 @@ import {
   useUpdateWorkflow,
   useUpdateWorkflowName,
 } from "@/features/workflows/hooks/use-workflows";
-import { useAtomValue } from "jotai";
-import { SaveIcon } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { isKnownNodeType } from "@/plugins/registry";
 import { editorAtom } from "../store/atoms";
 
 export const EditorNameInput = ({ workflowId }: { workflowId: string }) => {
@@ -53,7 +54,7 @@ export const EditorNameInput = ({ workflowId }: { workflowId: string }) => {
         id: workflowId,
         name,
       });
-    } catch (error) {
+    } catch {
       setName(workflow.name);
     } finally {
       setisEditing(false);
@@ -122,13 +123,25 @@ export const EditorSaveButton = ({ workflowId }: { workflowId: string }) => {
 
     saveWorkflow.mutate({
       id: workflowId,
-      nodes: nodes,
+      nodes: nodes.map((node) => {
+        if (!node.type || !isKnownNodeType(node.type)) {
+          throw new Error(
+            `Cannot save workflow: invalid node type "${node.type}"`,
+          );
+        }
+        return {
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: (node.data as Record<string, unknown> | undefined) ?? {},
+        };
+      }),
       edges: edges,
     });
   };
   return (
     <div className="ml-auto">
-      <Button size="sm" onClick={handleSave} disabled={saveWorkflow.isPending }>
+      <Button size="sm" onClick={handleSave} disabled={saveWorkflow.isPending}>
         <SaveIcon className="size-4" />
         Save
       </Button>

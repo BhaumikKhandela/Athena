@@ -1,7 +1,7 @@
 import type { Realtime } from "@inngest/realtime";
 import { useInngestSubscription } from "@inngest/realtime/hooks";
 import { useEffect, useState } from "react";
-import { NodeStatus } from "@/components/react-flow/node-status-indicator";
+import type { NodeStatus } from "@/components/react-flow/node-status-indicator";
 
 interface UseNodeStatusOptions {
   nodeId: string;
@@ -21,6 +21,8 @@ export function useNodeStatus({
   const { data } = useInngestSubscription({
     refreshToken,
     enabled: true,
+    // Isolate WebSocket lifecycle per node + channel (avoids stale closure issues with multiple nodes).
+    key: `${channel}:${nodeId}`,
   });
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function useNodeStatus({
           msg.kind === "data" &&
           msg.channel === channel &&
           msg.topic === topic &&
-          msg.data.nodeId === nodeId
+          msg.data.nodeId === nodeId,
       )
       .sort((a, b) => {
         if (a.kind === "data" && b.kind === "data") {
@@ -51,7 +53,6 @@ export function useNodeStatus({
       setStatus(latestMessage.data.status as NodeStatus);
     }
   }, [data, nodeId, channel, topic]);
-
 
   return status;
 }
